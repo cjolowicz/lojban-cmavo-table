@@ -1,4 +1,16 @@
+#!/usr/bin/python
 import sys
+# singleton selmao are colored black
+singletons=dict.fromkeys('''\
+BE	CEI	FEhU	JAI	KU	MEhU	NUhA	SI	VAU	ZOhU
+BEhO	CO	FIhO	JOhI	LEhU	ME	NUhI	SOI	VEhO	ZO
+BEI	CU	FOI	KEhE	LIhU	MOhE	NUhU	SU	VEI
+BIhE	DAhO	FUhA	KEI	LOhO	MOhI	PEhE	TEhU	VUhO
+BO	DOhU	FUhE	KE	LOhU	NAhU	PEhO	TEI	XI
+BOI	DOI	FUhO	KI	LUhU	NAI	RAhO	TOI	Y
+BU	FAhO	GEhU	KUhE	LU	NIhE	SA	TUhE	ZEI
+CEhE	FEhE	GI	KUhO	MAhO		SEhU	TUhU	ZIhE
+'''.split())
 # mapping from cmavo to selmao
 selmaodict=dict(pair.split() for pair in '''\
 .a	A
@@ -1209,7 +1221,7 @@ table { float: left; margin: .5em; }
 tr { border: none; margin: 0; padding: 0; }
 td { border: none; margin: 0; padding: .2em; border: thin black solid; }
 .hilite { border: thin red solid; background-color: black; color: yellow; }
-.legend { float: left; min-width: 7em; }
+.legend { float: left; min-width: 7em; margin-bottom: .5em; }
 '''
 # JavaScript (toggles highlighting)
 script='''
@@ -1239,9 +1251,17 @@ function hilite(selmao) {
 # list of selma'o
 selmaos=sorted(dict.fromkeys(selmaodict.values()))
 sys.stderr.write('%s selmaos\n' % len(selmaos))
+sys.stderr.write('%s proper selmaos\n' % (len(selmaos)-len(singletons)))
 # generate a color scale (RGB, three hex digits)
+# def xselections(items, n):
+#     if n==0: yield []
+#     else:
+#         for i in xrange(len(items)):
+#             for ss in xselections(items, n-1):
+#                 yield [items[i]]+ss
+# colorscale = map(''.join, (xselections('27bf', 3)))
 colorscale = []
-digits='3579bd'
+digits = "7bf"
 def gencolor(i,j,x,y):
     color=list("000")
     color[i]=x
@@ -1250,16 +1270,33 @@ def gencolor(i,j,x,y):
 for i in [0,1,2]:
     for x in digits:
         colorscale.append(gencolor(i,i,x,x))
-    for x in '28f':
+    for x in '29':
         for j in [0,1,2]:
             if i != j:
                 for y in digits:
                     colorscale.append(gencolor(i,j,x,y))
-sys.stderr.write('%s unique colors generated\n' % len(colorscale))
+colorscale.append("222")
+colorscale.append("555")
+colorscale.append("888")
+colorscale.append("aaa")
+sys.stderr.write('%s colors generated\n' % len(colorscale))
 # mapping from selma'o to RGB
 colors = {}
 for selmao in selmaos:
-    colors[selmao]=colorscale.pop(0)
+    colors[selmao]=colorscale.pop(0) \
+        if selmao not in singletons else "000"
+# assign dark grey to UI
+def force_color(selmao, color):
+    for k,v in colors.iteritems():
+        if v == color:
+            break
+    colors[k]=colors[selmao]
+    colors[selmao]=color
+force_color("UI", "00f")
+force_color("PA", "f00")
+force_color("BAI", "f90")
+force_color("KOhA", "b09")
+# append coloring to stylesheet
 for selmao, color in colors.iteritems():
     stylesheet += '.%s { background-color: #%s; }\n' % (selmao, color)
 # mapping from first to second cmavo vowels
@@ -1296,22 +1333,23 @@ for v in 'aeiou':
         write('</tr>')
     write('</table>')
 # at the bottom, we have the selma'o legend: floating blocks of 9 (color,selma'o) subblocks
-write('\n')
-write('<hr class="clear">')
-xs=[]
 def mklegend(xs):
     write('<div class="legend">')
     for x in xs:
         write('<div id="%s" onclick="hilite(this.id)"><span class="%s">&nbsp;&nbsp;&nbsp;</span>&nbsp;%s</div>' % (x, x, x))
         write('\n')
     write('</div>')
-for selmao in selmaos:
-    if len(xs)>=9:
-	mklegend(xs)
-        xs=[]
-    xs.append(selmao)
-if xs:
-    mklegend(xs)
+for collection in (set(selmaos)-set(singletons), singletons):
+    write('\n')
+    write('<hr class="clear">')
+    xs=[]
+    for selmao in sorted(collection):
+        if len(xs)>=5:
+            mklegend(xs)
+            xs=[]
+        xs.append(selmao)
+    if xs:
+        mklegend(xs)
 # finish HTML
 write('</body></html>')
 write('\n')
